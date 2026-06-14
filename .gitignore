@@ -1,0 +1,13 @@
+# macOS
+.DS_Store
+
+# Unity 프로젝트 (별도 폴더로 분리됨 — 혹시 다시 들어와도 제외)
+My project/
+unity-metaverse/
+Builds/
+
+# 로그/임시
+*.log
+
+# 로컬 전용 보관 폴더 (repo 제외 — 백엔드 소스/발표 대본/명세서, 프로젝트 밖으로 이동 예정)
+로컬보관/
