@@ -19,13 +19,13 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 // (Meshy AI GLB는 클립 이름 ↔ 실제 모션이 어긋나서, 시각 검증된 이름 사용)
 const MODELS = [
   {
-    path:      'asset/character/male/Meshy_AI_male_biped_Meshy_AI_Meshy_Merged_Animations.glb',
-    danceClip: 'Mirror_Viewing',    // 실제론 손인사 모션 (Meshy GLB 함정 — 메모리 검증)
+    path:      'asset/character/male/Meshy_AI_Violet_Velocity_Kid_biped_Meshy_AI_Meshy_Merged_Animations.glb',
+    danceClip: 'Wave_for_Help_4',   // 남: 손인사
     x:         -2.8,                // 왼쪽 (헤더 텍스트 바깥쪽)
   },
   {
-    path:      'asset/character/female/Meshy_AI_female_biped_Meshy_AI_Meshy_Merged_Animations.glb',
-    danceClip: 'Happy_jump_f',
+    path:      'asset/character/female/Meshy_AI_Violet_Velocity_biped_Meshy_AI_Meshy_Merged_Animations.glb',
+    danceClip: 'Superlove_Pop_Dance', // 여: 춤
     x:         2.8,                 // 오른쪽 (헤더 텍스트 바깥쪽)
   },
 ];

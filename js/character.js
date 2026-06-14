@@ -16,30 +16,26 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-// 성별별 GLB 경로
+// 성별별 GLB 경로 (Violet Velocity 캐릭터, 병합 애니메이션 1파일)
 const MODEL_PATHS = {
-  male:   'asset/character/male/Meshy_AI_male_biped_Meshy_AI_Meshy_Merged_Animations.glb',
-  female: 'asset/character/female/Meshy_AI_female_biped_Meshy_AI_Meshy_Merged_Animations.glb',
+  male:   'asset/character/male/Meshy_AI_Violet_Velocity_Kid_biped_Meshy_AI_Meshy_Merged_Animations.glb',
+  female: 'asset/character/female/Meshy_AI_Violet_Velocity_biped_Meshy_AI_Meshy_Merged_Animations.glb',
 };
 
 // 성별별 "역할(role) → 클립 이름" 매핑
 //
-// ⚠️ Meshy AI GLB 이슈:
-//   클립 이름이 실제 모션 데이터와 매칭 안 됨. 이름은 알파벳순이지만
-//   데이터는 다른 순서라 "Idle_9"이라고 적혀있어도 실제론 달리기를 재생함.
-//   아래는 사용자 시각 검증 결과를 토대로 한 매핑임.
-//
-//   남자 기준 (사용자 검증):
-//     "Wave_for_Help_4" 클립 → 실제로 기본자세 재생
-//     "Running"          클립 → 실제로 춤 재생
+// 병합 GLB 안의 클립 이름 (정상 이름으로 들어있음):
+//   male:   ['All_Night_Dance','Idle_02','Running','Walking','Wave_for_Help_4']
+//   female: ['Idle_02','Running','Superlove_Pop_Dance','Walking','Wave_for_Help_4']
+// 이전 Meshy 함정(이름↔모션 불일치)과 달리 이름이 맞는 것으로 보이나,
+// default/dance가 의도대로 재생되는지 한 번 시각 확인 권장.
 const ANIMATION_MAP = {
   male: {
-    default: 'Wave_for_Help_4',
-    dance:   'Running',
+    default: 'Idle_02',
+    dance:   'All_Night_Dance',
   },
   female: {
-    // 여자는 이름이 맞을 가능성 높음 (확인 후 수정 가능)
-    default: 'Idle_9',
+    default: 'Idle_02',
     dance:   'Superlove_Pop_Dance',
   },
 };
@@ -90,8 +86,10 @@ export function initCharacter(containerId, gender = 'male') {
     0.1,
     100
   );
-  camera.position.set(0, 1.5, 6);
-  camera.lookAt(0, 1, 0);
+  // z를 살짝 뒤로 빼서 머리 위쪽이 안 잘리게 (새 캐릭터 키 반영)
+  // lookAt y를 올려 시선을 몸통 중앙으로 → 캐릭터가 네모 프레임 중앙에 오게
+  camera.position.set(0, 1.7, 7);
+  camera.lookAt(0, 1.25, 0);
 
   // 렌더러
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
