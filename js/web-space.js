@@ -14,17 +14,16 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-// 성별별 모델 경로 (character.js와 동일 파일)
+// 성별별 모델 경로 (character.js와 동일 파일 — Violet Velocity 병합 GLB)
 const MODEL_PATHS = {
-  male:   'asset/character/male/Meshy_AI_male_biped_Meshy_AI_Meshy_Merged_Animations.glb',
-  female: 'asset/character/female/Meshy_AI_female_biped_Meshy_AI_Meshy_Merged_Animations.glb',
+  male:   'asset/character/male/Meshy_AI_Violet_Velocity_Kid_biped_Meshy_AI_Meshy_Merged_Animations.glb',
+  female: 'asset/character/female/Meshy_AI_Violet_Velocity_biped_Meshy_AI_Meshy_Merged_Animations.glb',
 };
 
-// 성별별 "역할 → 클립 이름" (character.js의 ANIMATION_MAP과 동일하게 검증된 이름)
-// Meshy GLB는 클립 이름 ↔ 실제 모션이 어긋나므로 시각 검증된 이름만 사용.
+// 성별별 "역할 → 클립 이름" (character.js의 ANIMATION_MAP과 동일)
 const CLIPS = {
-  male:   { idle: 'Wave_for_Help_4', dance: 'Running' },              // dance 클립이 실제론 춤
-  female: { idle: 'Idle_9',          dance: 'Superlove_Pop_Dance' },
+  male:   { idle: 'Idle_02', dance: 'All_Night_Dance' },
+  female: { idle: 'Idle_02', dance: 'Superlove_Pop_Dance' },
 };
 
 // 들러리(친구) 캐릭터 배치.

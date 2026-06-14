@@ -353,6 +353,28 @@ body {
   height: 100% !important;
 }
 
+/* 친구들과의 공간 캔버스 (web-space.js). 드래그로 둘러보기 → grab 커서 */
+.space-stage {
+  width: 100%;
+  height: 460px;
+  border-radius: 20px;
+  margin: 16px 0 24px;
+  position: relative;
+  overflow: hidden;
+  background: #16162a;
+  cursor: grab;
+}
+
+.space-stage:active {
+  cursor: grabbing;
+}
+
+.space-stage canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
 .result-actions {
   display: flex;
   flex-direction: column;

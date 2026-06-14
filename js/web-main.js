@@ -15,6 +15,7 @@
 import { submitGeneration, submitFeedback } from './web-api.js';
 import { generateCharacter, playDance, playIdle, resetCharacter } from './web-character.js';
 import { initComingSoonDance } from './web-coming-soon.js';
+import { initFriendsSpace } from './web-space.js';
 
 // ============== 세션 ID ==============
 const SESSION_KEY = 'fakedoor_session_id';
@@ -183,11 +184,19 @@ document.getElementById('btn-dance').addEventListener('click', () => {
   playDance();
 });
 
-document.getElementById('btn-to-feedback').addEventListener('click', () => {
+// 결과 화면 → 친구들과의 공간
+document.getElementById('btn-to-space').addEventListener('click', () => {
+  showSection('space');
+  // 섹션이 보인 다음 프레임에 init (display:none이면 컨테이너 0×0).
+  // 내 캐릭터 정보(성별 + 본 스케일)를 공간 씬에 전달해서 내 체형으로 입장.
+  const boneScales = JSON.parse(localStorage.getItem('customization') || 'null');
+  requestAnimationFrame(() => initFriendsSpace('space-stage', { gender: selectedGender, boneScales }));
+});
+
+// 친구 공간 → 의견 남기기
+document.getElementById('btn-space-to-feedback').addEventListener('click', () => {
   showSection('feedback');
-  // 섹션이 display:flex로 바뀌어 컨테이너 크기가 잡힌 다음 프레임에 init.
-  // (display:none 상태에서는 clientWidth/Height가 0이라 캔버스가 0×0으로 만들어짐)
-  // 내부에 중복 가드 있어서 두 번 클릭해도 안전.
+  // coming-soon 댄스 씬도 이 시점에 init (컨테이너 크기 확정 후). 중복 가드 있음.
   requestAnimationFrame(() => initComingSoonDance('dance-stage'));
 });
 
