@@ -13,9 +13,10 @@
  *   - LeftUpLeg   ← 왼다리 근육량 → 비율로 변환
  *   - neck        ← Spine02 역수 (머리 크기 유지)
  *
- * 성별별 baseline:
- *   - male:   한국 성인 남성 평균 (Spine02 합 35, 한쪽 다리 9)
- *   - female: 한국 성인 여성 평균 (Spine02 합 25, 한쪽 다리 6)
+ * 성별별 baseline (부위별 = InBody '부위별 근육량'/segmental 스케일, 평균에서 18%↓):
+ *   - male:   상체(양팔+몸통) 평균 ~29.5 → 24,  한쪽 다리 ~9 → 7.5
+ *   - female: 상체(양팔+몸통) 평균 ~21   → 17,  한쪽 다리 ~6 → 5
+ *   ※ 전체 골격근량(SMM, fallback 26/18)과는 다른 지표라 스케일이 다름.
  */
 import {
   initCharacter,
@@ -36,15 +37,16 @@ export { resetCharacter };
  */
 const BONE_CONFIG_BY_GENDER = {
   male: {
-    Spine02:    { baseline: 35, weight: 0.75, min: 0.75, max: 1.3  },
-    RightUpLeg: { baseline: 9,  weight: 1.75, min: 0.55, max: 1.8  },
-    LeftUpLeg:  { baseline: 9,  weight: 1.75, min: 0.55, max: 1.8  },
+    // 상체 = 양팔+몸통 (평균 ~29.5의 18%↓), 다리 = 한쪽 (평균 ~9의 18%↓)
+    Spine02:    { baseline: 24,  weight: 0.75, min: 0.75, max: 1.3  },
+    RightUpLeg: { baseline: 7.5, weight: 1.75, min: 0.55, max: 1.8  },
+    LeftUpLeg:  { baseline: 7.5, weight: 1.75, min: 0.55, max: 1.8  },
   },
   female: {
-    // 한국 여성 평균 (대략): 한쪽 팔 ~2, 한쪽 다리 ~6, 몸통 ~17 → 합 ~25
-    Spine02:    { baseline: 25, weight: 0.75, min: 0.75, max: 1.3  },
-    RightUpLeg: { baseline: 6,  weight: 1.75, min: 0.55, max: 1.8  },
-    LeftUpLeg:  { baseline: 6,  weight: 1.75, min: 0.55, max: 1.8  },
+    // 상체 = 양팔+몸통 (평균 ~21의 18%↓), 다리 = 한쪽 (평균 ~6의 18%↓)
+    Spine02:    { baseline: 17, weight: 0.75, min: 0.75, max: 1.3  },
+    RightUpLeg: { baseline: 5,  weight: 1.75, min: 0.55, max: 1.8  },
+    LeftUpLeg:  { baseline: 5,  weight: 1.75, min: 0.55, max: 1.8  },
   },
 };
 
@@ -53,20 +55,22 @@ const BONE_CONFIG_BY_GENDER = {
  * 입력값은 muscle 한 개지만, 적용 본별로 변화 폭을 따로 둠 — 부위별 모드의 본별
  * 차이(상체는 둔감, 다리는 민감)를 fallback에서도 동일하게 살리기 위함.
  *
- * baseline: 한국 성인 평균 골격근량 (kg)
+ * baseline: 스케일 1.0 기준 골격근량 (kg). 한국 평균(남 32 / 여 22)에서
+ *           남녀 동일하게 약 18% 낮춰 잡음 → 보통 사용자가 기준을 넘겨
+ *           캐릭터가 커지는 게 눈에 잘 띄게 함 (남 26 / 여 18).
  * weight:   변화 폭 가중치 (작을수록 차이가 적게 반영됨)
  * min/max:  스케일 클램핑 범위
  */
 const MUSCLE_FALLBACK_BY_GENDER = {
   male: {
-    Spine02:    { baseline: 33, weight: 1.5,  min: 0.7, max: 1.4 },  // 상체: 부위별 모드보다 살짝 강함
-    RightUpLeg: { baseline: 33, weight: 1.75, min: 0.6, max: 1.8 },  // 다리: 부위별과 동일한 폭
-    LeftUpLeg:  { baseline: 33, weight: 1.75, min: 0.6, max: 1.8 },
+    Spine02:    { baseline: 26, weight: 1.5,  min: 0.7, max: 1.4 },  // 상체: 부위별 모드보다 살짝 강함
+    RightUpLeg: { baseline: 26, weight: 1.75, min: 0.6, max: 1.8 },  // 다리: 부위별과 동일한 폭
+    LeftUpLeg:  { baseline: 26, weight: 1.75, min: 0.6, max: 1.8 },
   },
   female: {
-    Spine02:    { baseline: 24, weight: 1.5,  min: 0.7, max: 1.4 },
-    RightUpLeg: { baseline: 24, weight: 1.75, min: 0.6, max: 1.8 },
-    LeftUpLeg:  { baseline: 24, weight: 1.75, min: 0.6, max: 1.8 },
+    Spine02:    { baseline: 18, weight: 1.5,  min: 0.7, max: 1.4 },
+    RightUpLeg: { baseline: 18, weight: 1.75, min: 0.6, max: 1.8 },
+    LeftUpLeg:  { baseline: 18, weight: 1.75, min: 0.6, max: 1.8 },
   },
 };
 
@@ -122,7 +126,7 @@ export function inbodyToBoneScales(inbody) {
   // 경로 1: 부위별 입력 있음 — 기존 정밀 매핑
   if (hasDetailMuscle(inbody)) {
     const config = BONE_CONFIG_BY_GENDER[gender];
-    const upperTotal = inbody.armR + inbody.legR + inbody.trunk;
+    const upperTotal = inbody.armR + inbody.armL + inbody.trunk;   // 상체 = 양팔+몸통
     const spine02 = toScale(upperTotal, config.Spine02);
 
     return {

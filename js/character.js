@@ -90,7 +90,7 @@ export function initCharacter(containerId, gender = 'male') {
   );
   // z를 살짝 뒤로 빼서 머리 위쪽이 안 잘리게 (새 캐릭터 키 반영)
   // lookAt y를 올려 시선을 몸통 중앙으로 → 캐릭터가 네모 프레임 중앙에 오게
-  camera.position.set(0, 1.7, 7);
+  camera.position.set(0, 1.7, 9);
   camera.lookAt(0, 1.25, 0);
 
   // 렌더러

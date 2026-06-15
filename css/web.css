@@ -357,7 +357,7 @@ body {
    문구는 위로 바짝 붙이고 캔버스가 남은 높이를 전부 차지 → 아래로 안 길어짐(스크롤 X). */
 .section.section-space {
   height: 100vh;
-  padding-top: 12px;
+  padding-top: 6px;
   padding-bottom: 12px;
   justify-content: flex-start;   /* 위에서부터 채움 */
 }
@@ -378,7 +378,7 @@ body {
 
 .section-space .section-sub {
   font-size: 13px;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 /* 캔버스가 문구와 버튼 사이 남은 공간을 전부 차지 (고정 높이 X → 스크롤 없음) */

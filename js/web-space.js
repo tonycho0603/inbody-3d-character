@@ -34,7 +34,9 @@ const DECOYS = [
 const MOVE_SPEED = 2.6;     // units/sec
 const TURN_LERP  = 0.2;     // 방향 전환 부드럽기
 const BOUNDS     = 18;      // 바닥(40x40) 안쪽 이동 한계
-const CAM_OFFSET = new THREE.Vector3(0, 3, 5.5);   // 3인칭 카메라 오프셋(캐릭터 기준)
+const CAM_DIST   = 7;       // 캐릭터로부터 카메라 거리
+const CAM_HEIGHT = 3.8;     // 카메라 높이
+const DRAG_SENS  = 0.006;   // 드래그 회전 감도 (rad/px)
 
 // 발 본 (캐릭터를 바닥에 세우는 데 사용)
 const FOOT_BONES = ['LeftToeBase', 'RightToeBase', 'LeftFoot', 'RightFoot'];
@@ -226,6 +228,30 @@ export function initFriendsSpace(containerId, userCharacter) {
     dance: () => { gestureName = (gestureName === 'dance') ? null : 'dance'; },
   });
 
+  // ===== 카메라 드래그 회전 (캐릭터 중심 궤도) =====
+  // 빈 캔버스 영역에서 드래그하면 시점이 캐릭터 주위를 돈다.
+  // (D-패드/제스처 버튼은 pointer-events로 따로 처리되어 충돌 안 함)
+  let camYaw = 0;
+  let dragging = false, lastX = 0;
+  const canvasEl = renderer.domElement;
+  canvasEl.style.touchAction = 'none';   // 터치 드래그가 스크롤로 새지 않게
+  canvasEl.addEventListener('pointerdown', (e) => {
+    dragging = true;
+    lastX = e.clientX;
+    canvasEl.setPointerCapture(e.pointerId);
+  });
+  canvasEl.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    camYaw -= (e.clientX - lastX) * DRAG_SENS;
+    lastX = e.clientX;
+  });
+  const endDrag = (e) => {
+    dragging = false;
+    if (e.pointerId != null) canvasEl.releasePointerCapture?.(e.pointerId);
+  };
+  canvasEl.addEventListener('pointerup', endDrag);
+  canvasEl.addEventListener('pointercancel', endDrag);
+
   // ===== 리사이즈 =====
   window.addEventListener('resize', () => {
     if (!container.clientWidth) return;
@@ -243,17 +269,17 @@ export function initFriendsSpace(containerId, userCharacter) {
     if (userMixer) userMixer.update(delta);
 
     if (userModel) {
-      // 입력 → 방향
-      _dir.set(0, 0, 0);
-      if (input.forward) _dir.z -= 1;
-      if (input.back)    _dir.z += 1;
-      if (input.left)    _dir.x -= 1;
-      if (input.right)   _dir.x += 1;
+      // 입력 → 카메라 기준 방향 (드래그로 돌린 시점이 곧 '앞')
+      const f = (input.forward ? 1 : 0) - (input.back ? 1 : 0);   // 앞(+)/뒤(-)
+      const s = (input.right ? 1 : 0) - (input.left ? 1 : 0);     // 오른쪽(+)/왼쪽(-)
+      // 카메라가 보는 앞 = 캐릭터 - 카메라 = (-sin, -cos), 오른쪽 = (cos, -sin)
+      const fx = -Math.sin(camYaw), fz = -Math.cos(camYaw);
+      const rx =  Math.cos(camYaw), rz = -Math.sin(camYaw);
+      _dir.set(fx * f + rx * s, 0, fz * f + rz * s);
       const moving = _dir.lengthSq() > 0;
 
       if (moving) {
         _dir.normalize();
-        // 이동 + 경계 클램프
         userModel.position.x = THREE.MathUtils.clamp(
           userModel.position.x + _dir.x * MOVE_SPEED * delta, -BOUNDS, BOUNDS);
         userModel.position.z = THREE.MathUtils.clamp(
@@ -269,11 +295,11 @@ export function initFriendsSpace(containerId, userCharacter) {
         crossfade('idle');
       }
 
-      // 3인칭 카메라 추적
+      // 3인칭 카메라: 캐릭터 중심으로 camYaw 각도에서 따라봄 (드래그로 회전)
       camera.position.set(
-        userModel.position.x + CAM_OFFSET.x,
-        CAM_OFFSET.y,
-        userModel.position.z + CAM_OFFSET.z
+        userModel.position.x + Math.sin(camYaw) * CAM_DIST,
+        CAM_HEIGHT,
+        userModel.position.z + Math.cos(camYaw) * CAM_DIST
       );
       camera.lookAt(userModel.position.x, 1.2, userModel.position.z);
     }
