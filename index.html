@@ -182,8 +182,25 @@
       <h2 class="section-title">친구들과의 공간</h2>
       <p class="section-sub">내 캐릭터로 입장했어요. 마우스로 드래그해 둘러보세요.</p>
 
-      <!-- web-space.js가 캔버스를 채움 -->
-      <div class="space-stage" id="space-stage"></div>
+      <!-- web-space.js가 캔버스를 채움 + 아래 컨트롤 오버레이 -->
+      <div class="space-stage" id="space-stage">
+        <div class="space-controls">
+          <!-- 방향 D-패드 (모바일 터치 / 데스크탑 클릭) -->
+          <div class="dpad">
+            <button class="ctrl-btn" data-dir="forward" aria-label="앞으로">▲</button>
+            <div class="dpad-row">
+              <button class="ctrl-btn" data-dir="left" aria-label="왼쪽">◀</button>
+              <button class="ctrl-btn" data-dir="back" aria-label="뒤로">▼</button>
+              <button class="ctrl-btn" data-dir="right" aria-label="오른쪽">▶</button>
+            </div>
+          </div>
+          <!-- 제스처 버튼 -->
+          <div class="space-gestures">
+            <button class="ctrl-action" id="btn-space-wave">👋 인사</button>
+            <button class="ctrl-action" id="btn-space-dance">💃 춤</button>
+          </div>
+        </div>
+      </div>
 
       <div class="result-actions">
         <button class="btn-primary" id="btn-space-to-feedback">의견 남기기 →</button>

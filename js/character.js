@@ -51,7 +51,9 @@ let currentAction = null;
 let currentGender = 'male';
 let animationFrameId = null;
 let resizeHandler = null;
+let footBones = [];                 // 바닥 고정용 발 본 캐시
 const clock = new THREE.Clock();
+const _footVec = new THREE.Vector3();
 
 
 /**
@@ -109,6 +111,10 @@ export function initCharacter(containerId, gender = 'male') {
     model = gltf.scene;
     scene.add(model);
 
+    // 발 본 캐시 (다리 스케일 후 발을 바닥에 고정하는 데 사용)
+    footBones = ['LeftToeBase', 'RightToeBase', 'LeftFoot', 'RightFoot']
+      .map(n => model.getObjectByName(n)).filter(Boolean);
+
     // 애니메이션 클립에서 스케일 트랙 제거
     gltf.animations.forEach((clip) => {
       clip.tracks = clip.tracks.filter(track => !track.name.endsWith('.scale'));
@@ -143,6 +149,7 @@ export function initCharacter(containerId, gender = 'male') {
   function animate() {
     animationFrameId = requestAnimationFrame(animate);
     if (mixer) mixer.update(clock.getDelta());
+    groundModel();                                   // 발을 바닥에 고정
     if (renderer && scene && camera) renderer.render(scene, camera);
   }
   animate();
@@ -202,6 +209,7 @@ export function resetCharacter() {
 
   // 나머지 상태 초기화
   model = null;
+  footBones = [];
   camera = null;
 
   console.log('[character] 캐릭터 리셋 완료. 다음 init 때 새로 만들어짐');
@@ -261,6 +269,24 @@ export function playAnimation(index) {
   action.fadeIn(0.3);
   action.play();
   currentAction = action;
+}
+
+
+/**
+ * 캐릭터를 바닥(y=0)에 고정합니다.
+ * 다리 본을 키우면 발이 hip 기준 아래로 길어져 프레임에서 잘리므로,
+ * 매 프레임 발 최저점을 y=0으로 올려 발이 항상 같은 바닥선에 닿게 함.
+ */
+function groundModel() {
+  if (!model || !footBones.length) return;
+  model.position.y = 0;
+  model.updateMatrixWorld(true);
+  let minY = Infinity;
+  for (const b of footBones) {
+    _footVec.setFromMatrixPosition(b.matrixWorld);
+    if (_footVec.y < minY) minY = _footVec.y;
+  }
+  if (minY < Infinity) model.position.y = -minY;
 }
 
 
