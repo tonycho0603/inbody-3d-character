@@ -24,15 +24,13 @@ const MODEL_PATHS = {
 
 // 성별별 "역할(role) → 클립 이름" 매핑
 //
-// 병합 GLB 안의 클립 이름 (정상 이름으로 들어있음):
-//   male:   ['All_Night_Dance','Idle_02','Running','Walking','Wave_for_Help_4']
-//   female: ['Idle_02','Running','Superlove_Pop_Dance','Walking','Wave_for_Help_4']
-// 이전 Meshy 함정(이름↔모션 불일치)과 달리 이름이 맞는 것으로 보이나,
-// default/dance가 의도대로 재생되는지 한 번 시각 확인 권장.
+// 병합 GLB 안의 클립 이름:
+//   male:   ['Gangnam_Groove','Idle_02','Running','Walking','Wave_for_Help_1']
+//   female: ['Idle_02','Running','Superlove_Pop_Dance','Walking','Wave_for_Help_1']
 const ANIMATION_MAP = {
   male: {
     default: 'Idle_02',
-    dance:   'All_Night_Dance',
+    dance:   'Gangnam_Groove',
   },
   female: {
     default: 'Idle_02',

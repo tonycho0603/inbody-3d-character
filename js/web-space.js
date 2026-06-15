@@ -20,8 +20,8 @@ const MODEL_PATHS = {
 
 // 성별별 "역할 → 클립 이름" (병합 GLB 내부 클립)
 const CLIPS = {
-  male:   { idle: 'Idle_02', walk: 'Walking', dance: 'All_Night_Dance',     wave: 'Wave_for_Help_4' },
-  female: { idle: 'Idle_02', walk: 'Walking', dance: 'Superlove_Pop_Dance', wave: 'Wave_for_Help_4' },
+  male:   { idle: 'Idle_02', walk: 'Walking', dance: 'Gangnam_Groove',      wave: 'Wave_for_Help_1' },
+  female: { idle: 'Idle_02', walk: 'Walking', dance: 'Superlove_Pop_Dance', wave: 'Wave_for_Help_1' },
 };
 
 // 들러리(친구) 2명 — 남녀 1명씩
@@ -81,9 +81,46 @@ function lerpAngle(a, b, t) {
 }
 
 /**
+ * 텍스트 말풍선을 그린 캔버스를 텍스처로 쓰는 빌보드 Sprite 생성.
+ * (HTML 오버레이가 아니라 3D 씬 안 객체라 깊이/위치가 자연스러움)
+ */
+function makeTextSprite(text) {
+  const FONT = 48, PAD = 26, RADIUS = 30;
+  const measure = document.createElement('canvas').getContext('2d');
+  measure.font = `800 ${FONT}px sans-serif`;
+  const textW = Math.ceil(measure.measureText(text).width);
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = textW + PAD * 2;
+  canvas.height = FONT + PAD * 2;
+  const c = canvas.getContext('2d');
+
+  // 흰 라운드 박스
+  c.fillStyle = '#fff';
+  if (c.roundRect) { c.beginPath(); c.roundRect(0, 0, canvas.width, canvas.height, RADIUS); c.fill(); }
+  else c.fillRect(0, 0, canvas.width, canvas.height);
+
+  // 텍스트
+  c.font = `800 ${FONT}px sans-serif`;
+  c.fillStyle = '#1a1a2e';
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillText(text, canvas.width / 2, canvas.height / 2);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.minFilter = THREE.LinearFilter;
+  const sprite = new THREE.Sprite(
+    new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false })
+  );
+  const h = 0.45;                                          // 월드 높이(m)
+  sprite.scale.set(h * (canvas.width / canvas.height), h, 1);
+  return sprite;
+}
+
+/**
  * 들러리 캐릭터 1명 로드 + 지정 클립 재생.
  */
-function spawnDecoy(loader, scene, mixers, cfg) {
+function spawnDecoy(loader, scene, mixers, cfg, onLoaded) {
   loader.load(MODEL_PATHS[cfg.gender], (gltf) => {
     const model = gltf.scene;
     model.position.set(cfg.x, 0, cfg.z);
@@ -97,6 +134,8 @@ function spawnDecoy(loader, scene, mixers, cfg) {
     const clip = gltf.animations.find(a => a.name === clipName);
     if (clip) mixer.clipAction(clip).play();
     mixers.push(mixer);
+
+    if (onLoaded) onLoaded(model);
   });
 }
 
@@ -128,6 +167,39 @@ export function initFriendsSpace(containerId, userCharacter) {
   renderer.setPixelRatio(window.devicePixelRatio);
   container.appendChild(renderer.domElement);
 
+  // ===== 말풍선 시스템 (3D Sprite, 캐릭터 머리 위) =====
+  // 캔버스 텍스처 Sprite를 씬에 띄우고, 매 프레임 대상 머리 본 위로 위치만 맞춘다.
+  // Sprite는 항상 카메라를 바라봐서(빌보드) 시점 돌려도 글자가 정면으로 보임.
+  const bubbles = [];
+  const _bubblePos = new THREE.Vector3();
+  function makeBubble(getHead) {
+    const entry = { getHead, sprite: null, timer: null };
+    bubbles.push(entry);
+    return {
+      show(text, ms) {
+        if (entry.sprite) scene.remove(entry.sprite);
+        entry.sprite = makeTextSprite(text);
+        entry.sprite.visible = false;       // 위치 잡힌 다음 프레임에 표시
+        entry.sprite.renderOrder = 999;     // 항상 위에
+        scene.add(entry.sprite);
+        if (entry.timer) clearTimeout(entry.timer);
+        entry.timer = setTimeout(() => {
+          if (entry.sprite) { scene.remove(entry.sprite); entry.sprite = null; }
+        }, ms);
+      },
+    };
+  }
+  function updateBubbles() {
+    for (const b of bubbles) {
+      if (!b.sprite) continue;
+      const head = b.getHead();
+      if (!head) continue;
+      head.getWorldPosition(_bubblePos);
+      b.sprite.position.set(_bubblePos.x, _bubblePos.y + 0.9, _bubblePos.z);
+      b.sprite.visible = true;
+    }
+  }
+
   // ===== 조명 =====
   scene.add(new THREE.AmbientLight(0xffffff, 0.85));
   const dirLight = new THREE.DirectionalLight(0xffffff, 1.1);
@@ -149,12 +221,34 @@ export function initFriendsSpace(containerId, userCharacter) {
   const loader = new GLTFLoader();
   const mixers = [];
 
-  // 들러리 2명
-  DECOYS.forEach((d) => spawnDecoy(loader, scene, mixers, d));
+  // 들러리 2명 + 입장 인사 말풍선
+  const decoyHeads = {};       // gender -> Head 본
+  DECOYS.forEach((d) => {
+    spawnDecoy(loader, scene, mixers, d, (model) => {
+      decoyHeads[d.gender] = model.getObjectByName('Head');
+    });
+  });
+  const femaleBubble = makeBubble(() => decoyHeads.female);
+  const maleBubble   = makeBubble(() => decoyHeads.male);
+  // 인사 사이클: 여자 "안녕?" → 2초 뒤 남자 "반가워!". 7초마다 반복.
+  function greetCycle() {
+    femaleBubble.show('안녕?', 3000);
+    setTimeout(() => maleBubble.show('반가워!', 3000), 2000);
+  }
+  function startGreeting() {
+    if (decoyHeads.female && decoyHeads.male) {
+      greetCycle();
+      setInterval(greetCycle, 7000);
+    } else {
+      setTimeout(startGreeting, 200);   // 모델 로드 전이면 잠시 후 재시도
+    }
+  }
+  startGreeting();
 
   // 내 캐릭터 (조작 대상)
   let userModel = null;
   let userMixer = null;
+  let userHeadBone = null;   // 내 캐릭터 말풍선 기준 (머리 본)
   const actions = {};        // role -> AnimationAction
   let activeName = null;     // 현재 재생 중인 클립 role
   let gestureName = null;    // 'dance' | 'wave' | null (제스처 잠금)
@@ -175,6 +269,7 @@ export function initFriendsSpace(containerId, userCharacter) {
 
     applyBoneScales(userModel, boneScales);
     groundOnFloor(userModel);
+    userHeadBone = userModel.getObjectByName('Head');   // 말풍선 기준
 
     stripScaleTracks(gltf.animations);
     userMixer = new THREE.AnimationMixer(userModel);
@@ -223,8 +318,9 @@ export function initFriendsSpace(containerId, userCharacter) {
 
   // 화면 버튼 (모바일/데스크탑 공용) — #space-stage 안에 있는 컨트롤들
   bindHoldButtons(container, input);
+  const myBubble = makeBubble(() => userHeadBone);   // 내 캐릭터 말풍선
   bindGestureButtons(container, {
-    wave: () => { if (actions.wave) { actions.wave.reset(); } gestureName = 'wave'; },
+    wave: () => { if (actions.wave) { actions.wave.reset(); } gestureName = 'wave'; myBubble.show('안녕?', 2500); },
     dance: () => { gestureName = (gestureName === 'dance') ? null : 'dance'; },
   });
 
@@ -304,6 +400,7 @@ export function initFriendsSpace(containerId, userCharacter) {
       camera.lookAt(userModel.position.x, 1.2, userModel.position.z);
     }
 
+    updateBubbles();
     renderer.render(scene, camera);
   }
   animate();

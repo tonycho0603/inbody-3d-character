@@ -20,7 +20,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 const MODELS = [
   {
     path:      'asset/character/male/Meshy_AI_Violet_Velocity_Kid_biped_Meshy_AI_Meshy_Merged_Animations.glb',
-    danceClip: 'Wave_for_Help_4',   // 남: 손인사
+    danceClip: 'Wave_for_Help_1',   // 남: 손인사
     x:         -2.8,                // 왼쪽 (헤더 텍스트 바깥쪽)
   },
   {
