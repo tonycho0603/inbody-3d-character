@@ -33,7 +33,7 @@ const DECOYS = [
 // 이동 파라미터
 const MOVE_SPEED = 2.6;     // units/sec
 const TURN_LERP  = 0.2;     // 방향 전환 부드럽기
-const BOUNDS     = 18;      // 바닥(40x40) 안쪽 이동 한계
+const BOUNDS     = 12;      // 바닥(30x30) 안쪽 이동 한계
 const CAM_DIST   = 7;       // 캐릭터로부터 카메라 거리
 const CAM_HEIGHT = 3.8;     // 카메라 높이
 const DRAG_SENS  = 0.006;   // 드래그 회전 감도 (rad/px)
@@ -115,6 +115,75 @@ function makeTextSprite(text) {
   const h = 0.45;                                          // 월드 높이(m)
   sprite.scale.set(h * (canvas.width / canvas.height), h, 1);
   return sprite;
+}
+
+// 헬스 기구 배치 (파일별로 원본 스케일이 달라 '높이' 기준으로 정규화)
+// targetH = 월드 기준 목표 높이(캐릭터 ~1.8). x/z = 바닥 위치. rotY = 회전(중앙 바라보게).
+const OBJECT_DIR = 'asset/object/';
+const OBJECTS = [
+  { file: 'Meshy_AI_powerrack_0615164335_texture.glb',        targetH: 4.8,  x:  0, z: -9, rotY: 0 },
+  { file: 'Meshy_AI_runnning_machine_0615164147_texture.glb', targetH: 2.4,  x: -8, z: -4, rotY: 0 },
+  { file: 'Meshy_AI_runnning_machine_0615164147_texture.glb', targetH: 2.4,  x: -8, z:  1, rotY: 0 },
+  { file: 'Meshy_AI_benchpress_0615164154_texture.glb',       targetH: 2.16, x:  8, z: -2, rotY: -Math.PI / 2 },
+  { file: 'Meshy_AI_dumbbell_0615164546_texture.glb',         targetH: 0.6, x:  4, z:  4, rotY:  0.4 },
+  { file: 'Meshy_AI_dumbbell_0615164546_texture.glb',         targetH: 0.6, x: -4, z:  4, rotY: -0.4 },
+];
+
+/** GLB 하나를 높이 정규화 + 바닥에 앉혀 배치 */
+function loadObject(loader, scene, cfg) {
+  loader.load(OBJECT_DIR + cfg.file, (gltf) => {
+    const obj = gltf.scene;
+    // 1) 원본 높이 측정 → targetH로 스케일
+    const size = new THREE.Box3().setFromObject(obj).getSize(new THREE.Vector3());
+    obj.scale.setScalar(cfg.targetH / (size.y || 1));
+    // 2) 스케일 후 다시 측정해 바닥(y=0)에 앉힘
+    const minY = new THREE.Box3().setFromObject(obj).min.y;
+    obj.position.set(cfg.x, -minY, cfg.z);
+    obj.rotation.y = cfg.rotY || 0;
+    scene.add(obj);
+  });
+}
+
+/**
+ * 공간 환경 구성 (바닥 + 러그 + 화분 + 벤치 + 분위기 조명).
+ * 외부 에셋 없이 기본 도형으로만 절차적 생성.
+ */
+function buildEnvironment(scene) {
+  // 바닥
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(30, 30),
+    new THREE.MeshStandardMaterial({ color: 0x2b2b40, roughness: 1 })
+  );
+  floor.rotation.x = -Math.PI / 2;
+  scene.add(floor);
+
+  // 중앙 러그(원형 플랫폼) — 바닥과 뚜렷이 다른 색으로 강조
+  const rug = new THREE.Mesh(
+    new THREE.CircleGeometry(5.5, 48),
+    new THREE.MeshStandardMaterial({ color: 0x4954a6, roughness: 0.9 })
+  );
+  rug.rotation.x = -Math.PI / 2;
+  rug.position.y = 0.02;
+  scene.add(rug);
+
+  // 은은한 그리드(깊이감)
+  const grid = new THREE.GridHelper(30, 30, 0x556089, 0x333355);
+  grid.position.y = 0.01;
+  grid.material.transparent = true;
+  grid.material.opacity = 0.25;
+  scene.add(grid);
+
+  // 분위기 포인트 라이트 (따뜻 + 시원)
+  const warm = new THREE.PointLight(0xffd9a0, 0.6, 40);
+  warm.position.set(-8, 5, -4);
+  scene.add(warm);
+  const cool = new THREE.PointLight(0x88aaff, 0.5, 40);
+  cool.position.set(8, 5, 6);
+  scene.add(cool);
+
+  // 헬스 기구 배치
+  const objLoader = new GLTFLoader();
+  OBJECTS.forEach((cfg) => loadObject(objLoader, scene, cfg));
 }
 
 /**
@@ -201,21 +270,16 @@ export function initFriendsSpace(containerId, userCharacter) {
   }
 
   // ===== 조명 =====
-  scene.add(new THREE.AmbientLight(0xffffff, 0.85));
-  const dirLight = new THREE.DirectionalLight(0xffffff, 1.1);
+  scene.add(new THREE.AmbientLight(0xffffff, 1.25));        // 전체 밝기 ↑
+  const dirLight = new THREE.DirectionalLight(0xffffff, 1.6);
   dirLight.position.set(4, 8, 5);
   scene.add(dirLight);
+  const fillLight = new THREE.DirectionalLight(0xffffff, 0.7); // 반대편 채움광
+  fillLight.position.set(-5, 6, -4);
+  scene.add(fillLight);
 
-  // ===== 바닥 + 그리드 =====
-  const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(40, 40),
-    new THREE.MeshStandardMaterial({ color: 0x22223c, roughness: 1 })
-  );
-  floor.rotation.x = -Math.PI / 2;
-  scene.add(floor);
-  const grid = new THREE.GridHelper(40, 40, 0x667eea, 0x33335a);
-  grid.position.y = 0.01;
-  scene.add(grid);
+  // ===== 환경 (바닥 + 러그 + 화분 + 벤치 + 분위기 조명) =====
+  buildEnvironment(scene);
 
   // ===== 캐릭터 로드 =====
   const loader = new GLTFLoader();
