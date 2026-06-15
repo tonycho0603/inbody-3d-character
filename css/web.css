@@ -347,12 +347,22 @@ body {
 }
 
 
+/* 결과 화면: 모바일에서 버튼이 한 화면에 들어오게 여백 축소 */
+.section-result {
+  padding-top: 24px;
+  padding-bottom: 24px;
+}
+.section-result .section-sub {
+  margin-bottom: 14px;
+}
+
 .character-stage {
   width: 100%;
-  height: 420px;
+  height: 44vh;            /* 모바일: 화면 비율 → 아래 버튼까지 한 화면에 */
+  max-height: 420px;
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15));
   border-radius: 20px;
-  margin: 16px 0 24px;
+  margin: 12px 0 16px;
   position: relative;
   overflow: hidden;
 }
@@ -363,22 +373,17 @@ body {
   height: 100% !important;
 }
 
-/* 공간 섹션: 한 화면(100vh)에 딱 맞춤.
-   문구는 위로 바짝 붙이고 캔버스가 남은 높이를 전부 차지 → 아래로 안 길어짐(스크롤 X). */
+/* 공간 섹션: 캔버스를 화면 비율 높이로 잡고 상단 정렬 → 문구+버튼이 한 화면에 */
 .section.section-space {
-  height: 100vh;
-  padding-top: 6px;
-  padding-bottom: 12px;
+  min-height: 100vh;             /* 폴백 */
+  min-height: 100svh;            /* 모바일 툴바 제외 → 하단 버튼 보이게 */
+  padding-top: 16px;
+  padding-bottom: 16px;
   justify-content: flex-start;   /* 위에서부터 채움 */
 }
 
 .section-space .container-narrow {
   max-width: 1100px;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  flex: 1;                       /* 섹션 높이를 가득 채움 */
-  min-height: 0;                 /* 자식(캔버스)이 줄어들 수 있게 */
 }
 
 .section-space .section-title {
@@ -391,11 +396,11 @@ body {
   margin-bottom: 4px;
 }
 
-/* 캔버스가 문구와 버튼 사이 남은 공간을 전부 차지 (고정 높이 X → 스크롤 없음) */
+/* 공간 캔버스: 화면 비율 기준 높이 → 위 문구 + 아래 버튼까지 한 화면에 */
 .space-stage {
-  flex: 1;
-  min-height: 0;
   width: 100%;
+  height: 58svh;
+  max-height: 620px;
   border-radius: 20px;
   margin: 8px 0 12px;
   position: relative;
@@ -548,8 +553,8 @@ body {
 }
 
 .feature-cards {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;   /* 모바일: 2열 박스 */
   gap: 12px;
   margin-bottom: 16px;
 }
@@ -560,8 +565,10 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 14px;
   display: flex;
-  align-items: flex-start;
-  gap: 14px;
+  flex-direction: column;           /* 아이콘 위 · 글자 가운데 (박스형) */
+  align-items: center;
+  text-align: center;
+  gap: 10px;
   transition: transform 0.15s, background 0.15s;
 }
 
@@ -596,18 +603,10 @@ body {
   line-height: 1.5;
 }
 
-/* 태블릿 이상에서는 가로 3열 (카드 6개 → 2줄) */
+/* 태블릿 이상에서는 3열 (카드 6개 → 2줄). 카드 스타일은 base에서 이미 박스형 */
 @media (min-width: 768px) {
   .feature-cards {
-    display: grid;
     grid-template-columns: repeat(3, 1fr);
-  }
-
-  .feature-card {
-    flex: 1;
-    flex-direction: column;
-    text-align: center;
-    align-items: center;
   }
 
   .coming-soon-title {
@@ -654,6 +653,7 @@ body {
 
   .character-stage {
     height: 520px;
+    max-height: none;
   }
 
   .container-narrow {

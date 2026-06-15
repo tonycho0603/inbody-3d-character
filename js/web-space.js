@@ -34,8 +34,8 @@ const DECOYS = [
 const MOVE_SPEED = 2.6;     // units/sec
 const TURN_LERP  = 0.2;     // 방향 전환 부드럽기
 const BOUNDS     = 12;      // 바닥(30x30) 안쪽 이동 한계
-const CAM_DIST   = 7;       // 캐릭터로부터 카메라 거리
-const CAM_HEIGHT = 3.8;     // 카메라 높이
+const CAM_DIST   = 9.5;     // 캐릭터로부터 카메라 거리 (뒤로 빼서 답답함 ↓)
+const CAM_HEIGHT = 4.2;     // 카메라 높이
 const DRAG_SENS  = 0.006;   // 드래그 회전 감도 (rad/px)
 
 // 발 본 (캐릭터를 바닥에 세우는 데 사용)
