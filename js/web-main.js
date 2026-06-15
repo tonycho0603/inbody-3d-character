@@ -12,7 +12,7 @@
  *   - session_id 관리 (localStorage)
  *   - 공유 / 다시 만들기
  */
-import { submitGeneration, submitFeedback } from './web-api.js';
+import { recordVisit, markCharacter, markCommunity, markFinal, submitFeedback } from './web-api.js';
 import { generateCharacter, playDance, playIdle, resetCharacter } from './web-character.js';
 import { initComingSoonDance } from './web-coming-soon.js';
 import { initFriendsSpace } from './web-space.js';
@@ -24,6 +24,9 @@ if (!sessionId) {
   sessionId = crypto.randomUUID();
   localStorage.setItem(SESSION_KEY, sessionId);
 }
+
+// 방문 기록 (세션 행 생성) — 페이지 들어온 순간 1회
+recordVisit(sessionId);
 
 // 캐릭터 생성에 사용된 닉네임 (Result 화면 인사말용)
 let savedNickname = '';
@@ -92,13 +95,8 @@ inbodyForm.addEventListener('submit', async (e) => {
     return;
   }
 
-  // API 스텁 호출 (Phase 1: console.log만)
-  await submitGeneration({
-    session_id: sessionId,
-    user_agent: navigator.userAgent,
-    referrer: document.referrer,
-    ...data,
-  });
+  // 캐릭터 생성 단계 기록 (실제 "캐릭터 생성"을 누른 사람 기준)
+  markCharacter(sessionId);
 
   // 닉네임 저장 (Result 화면 인사말에 사용)
   savedNickname = data.nickname || '';
@@ -186,6 +184,7 @@ document.getElementById('btn-dance').addEventListener('click', () => {
 
 // 결과 화면 → 친구들과의 공간
 document.getElementById('btn-to-space').addEventListener('click', () => {
+  markCommunity(sessionId);            // "친구들과의 공간으로 가기" 클릭 기록
   showSection('space');
   // 섹션이 보인 다음 프레임에 init (display:none이면 컨테이너 0×0).
   // 내 캐릭터 정보(성별 + 본 스케일)를 공간 씬에 전달해서 내 체형으로 입장.
@@ -195,6 +194,7 @@ document.getElementById('btn-to-space').addEventListener('click', () => {
 
 // 친구 공간 → 의견 남기기
 document.getElementById('btn-space-to-feedback').addEventListener('click', () => {
+  markFinal(sessionId);                // "친구를 초대해서…" 클릭 기록
   showSection('feedback');
   // coming-soon 댄스 씬도 이 시점에 init (컨테이너 크기 확정 후). 중복 가드 있음.
   requestAnimationFrame(() => initComingSoonDance('dance-stage'));
@@ -220,11 +220,7 @@ feedbackForm.addEventListener('submit', async (e) => {
     return;
   }
 
-  await submitFeedback({
-    session_id: sessionId,
-    email,
-    feedback_text: feedbackText,
-  });
+  await submitFeedback(sessionId, email, feedbackText);
 
   showSection('thanks');
 });
